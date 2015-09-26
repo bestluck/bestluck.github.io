@@ -469,7 +469,7 @@ var chatStore = new Store('chat', {
 var betStore = new Store('bet', {
   nextHash: undefined,
   wager: {
-    str: '.2',
+    str: '0.2',
     num: 0.2,
     error: undefined
   },
@@ -480,8 +480,8 @@ var betStore = new Store('bet', {
   },
   hotkeysEnabled: false,
   automaticWager: {
-      str: '.547823',
-      num: 0.547823,
+      str: '0.2',
+      num: 0.2,
       error: undefined
   },
   automaticMultiplierWager: {
@@ -2511,7 +2511,7 @@ var FairnessTabContent = React.createClass({
       innerNode = el.p(
         {className: 'navbar-text'},
 			  el.p({className: 'lead'}, " "),
-			  el.p({className: 'lead'}, "This site is only allowed where it is legal to play."),
+			  el.p({className: 'lead'}, "This site is only allowed where it is legal to play.")
 
       );
 	  
