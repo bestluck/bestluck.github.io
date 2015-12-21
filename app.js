@@ -110,16 +110,20 @@ helpers.calcNumber = function(cond, winProb) {
   }
 };
 
-helpers.roleToLabelElement = function(role) {
+helpers.roleToLabelElement = function(role, uname) {
   switch(role) {
     case 'ADMIN':
-      return el.span({className: 'label label-danger'}, 'MP Staff');
+      return el.span({className: 'label label-danger'}, 'MP');
     case 'MOD':
-      return el.span({className: 'label label-info'}, '☆Mod☆');
+      return el.span({className: 'label label-info'}, '?V.I.P?');
     case 'OWNER':
-      return el.span({className: 'label label-primary'}, '★Owner★');
+      return el.span({className: 'label label-warning'}, '?Admin?');
     default:
-      return '';
+      if ((uname == "chatbot") || (uname == "Chatbot")) {
+       return el.span({className: 'label label-success'}, '?Bot?');
+      } else {
+       return el.span({className: 'label label-primary'}, '?');
+      }
   }
 };
 
@@ -279,7 +283,10 @@ var MoneyPot = (function() {
     var endpoint = '/bets/simple-dice';
     makeMPRequest('POST', bodyParams, endpoint, callbacks);
   };
-
+  o.tip = function(bodyParams, callbacks) {
+        var endpoint = '/tip';
+        makeMPRequest('POST', bodyParams, endpoint, callbacks);
+};
   return o;
 })();
 
@@ -455,6 +462,41 @@ var chatStore = new Store('chat', {
 
   // Message is { text: String }
   Dispatcher.registerCallback('SEND_MESSAGE', function(text) {
+  	if (text.substring(0, 4) == "/tip") {
+  		// TIP CODE HERE
+		var tipres = text.split(" ");
+		var tipamount = Math.round(parseFloat(tipres[2]) * 1e8);
+		var tipto = tipres[1];
+		// send tip to moneypot
+		
+		
+	var params = {
+        uname: tipto,
+        amount: tipamount
+      };
+
+	  MoneyPot.tip(params, {
+                  success: function(tip) {
+                  Dispatcher.sendAction('UPDATE_USER', {
+            balance: worldStore.state.user.balance - tipamount
+          });
+                   alert("Successfully sent "+tipres[2]+"BTC to "+tipto); console.log('Successfully made tip.');
+                  },
+                  error: function(xhr) {
+                    console.log('Error' + tipto + '|' + tipamount + '');
+                    if (xhr.responseJSON && xhr.responseJSON) {
+                      alert(xhr.responseJSON.error);
+                    } else {
+                      alert('Internal Error');
+                    }
+                  }
+
+                  })
+		
+		
+		
+  		
+  	} else {
     console.log('[ChatStore] received SEND_MESSAGE');
     self.state.waitingForServer = true;
     self.emitter.emit('change', self.state);
@@ -463,25 +505,26 @@ var chatStore = new Store('chat', {
         alert('Chat Error: ' + err);
       }
     });
+	}
   });
 });
 
 var betStore = new Store('bet', {
   nextHash: undefined,
   wager: {
-    str: '0.2',
-    num: 0.2,
+    str: '0.00000001',
+    num: 0.00000001,
     error: undefined
   },
   multiplier: {
-    str: '2.12',
-    num: 2.12,
+    str: '2.00',
+    num: 2.00,
     error: undefined
   },
   hotkeysEnabled: false,
   automaticWager: {
-      str: '0.2',
-      num: 0.2,
+      str: '0.00000001',
+      num: 0.00000001,
       error: undefined
   },
   automaticMultiplierWager: {
@@ -494,8 +537,8 @@ var betStore = new Store('bet', {
     error: undefined
   },
   clientSeed: {
-    str: '777777',
-    num: 777777,
+    str: '6969',
+    num: 6969,
     error:void 0
   },
   showAutomaticRoll: false,
@@ -519,7 +562,7 @@ var betStore = new Store('bet', {
     num: 1,
     error: undefined
   },
-  betVelocity: 500
+  betVelocity: 150
 }, function() {
   var self = this;
 
@@ -544,15 +587,15 @@ var betStore = new Store('bet', {
 
     // Ensure wagerString is a number
     //if (isNaN(n) || /[^\d]/.test(n.toString())) {
-	if (n < 1) {
+	if (n < 0.00000001) {
       self.state.wager.error = 'INVALID_WAGER';
     // Ensure user can afford balance
-    } else if (n * 100 > worldStore.state.user.balance) {
+    } else if (n / 0.00000001 > worldStore.state.user.balance) {
       self.state.wager.error = 'CANNOT_AFFORD_WAGER';
       self.state.wager.num = n;
     } else {
       // wagerString is valid
-      if (n > 4000000){
+      if (n > 7){
         self.state.wager.error = 'CANNOT_AFFORD_WAGER';
         self.state.wager.num = n;
       } else {
@@ -564,7 +607,7 @@ var betStore = new Store('bet', {
         }
       }
     }
-	if (isNumeric(n) && (n < 0.1)){
+	if (isNumeric(n) && (n < 0.00000001)){
 		self.state.wager.error = 'INVALID_WAGER';
 	} else {
 	    self.state.wager.error = null; // z
@@ -605,7 +648,7 @@ var betStore = new Store('bet', {
 		if (n < 1) {
           self.state.automaticWager.error = 'INVALID_WAGER';
         // Ensure user can afford balance
-        } else if (n * 100 > worldStore.state.user.balance) {
+        } else if (n / 0.00000001 > worldStore.state.user.balance) {
           self.state.automaticWager.error = 'CANNOT_AFFORD_WAGER';
           self.state.automaticWager.num = n;
         } else {
@@ -630,7 +673,7 @@ var betStore = new Store('bet', {
     Dispatcher.registerCallback('AUTOMATE_TOGGLE_ROLL', function() {
         console.log('[BetStore] received AUTOMATE_TOGGLE_ROLL');
         betStore.state.automaticToggle = true;
-        var balance = worldStore.state.user.balance / 100;
+        var balance = worldStore.state.user.balance * 0.00000001;
         var stop = false;
         if(betStore.state.checkBoxNumberOfBet === 'true' && (betStore.state.betCounter + 1) == self.state.NumberOfBetLimit.str){
             stop = true;
@@ -676,7 +719,7 @@ var betStore = new Store('bet', {
     
     Dispatcher.registerCallback("AUGMENT_PROFIT", function(multi){
         var profitQuantity = betStore.state.profitGained.num * Number(multi);
-        var balanceQuantity = worldStore.state.user.balance / 100;
+        var balanceQuantity = worldStore.state.user.balance * 0.00000001;
         if(balanceQuantity > profitQuantity){
             betStore.state.profitGained.num = profitQuantity;
             //betStore.state.profitGained.num = Number(betStore.state.profitGained.num.toFixed(0));
@@ -715,22 +758,30 @@ var betStore = new Store('bet', {
         self.emitter.emit('change', self.state);
     });
     Dispatcher.registerCallback("SET_STOP_MAX_BALANCE", function(stopMaxBalance){
-      var n = parseInt(stopMaxBalance, 10);
+      //var n = parseInt(stopMaxBalance, 10);
+      		var n = stopMaxBalance;
       if (isNaN(n) || /[^\d]/.test(n.toString())) {
         betStore.state.stopMaxBalance = '';
       }else {
+      	betStore.state.stopMaxBalance.error = null;
         betStore.state.stopMaxBalance = n;
       }
-      self.emitter.emit('change', self.state);
+      betStore.state.stopMaxBalance.error = null;
+      betStore.state.stopMaxBalance = n;
+    self.emitter.emit('change', self.state);
     });
     Dispatcher.registerCallback("SET_STOP_MIN_BALANCE", function(stopMinBalance){
-      var n = parseInt(stopMinBalance, 10);
+      //var n = parseInt(stopMinBalance, 10);
+      		var n = stopMinBalance;
       if (isNaN(n) || /[^\d]/.test(n.toString())) {
         betStore.state.stopMinBalance = '';
       }else {
+      	betStore.state.stopMinBalance.error = null;
         betStore.state.stopMinBalance = n;
       }
-      self.emitter.emit('change', self.state);
+      betStore.state.stopMinBalance.error = null;
+      betStore.state.stopMinBalance = n;
+    self.emitter.emit('change', self.state);
     });
     
     Dispatcher.registerCallback("STOP_ROLL", function(){
@@ -826,9 +877,9 @@ var worldStore = new Store('world', {
   });
 
   Dispatcher.registerCallback('INIT_ALL_BETS', function(bets) {
-    //console.assert(_.isArray(bets));
-    //self.state.allBets.push.apply(self.state.allBets, bets);
-    //self.emitter.emit('change', self.state);
+    console.assert(_.isArray(bets));
+    self.state.allBets.push.apply(self.state.allBets, bets);
+    self.emitter.emit('change', self.state);
   });
 
   Dispatcher.registerCallback('TOGGLE_HOTKEYS', function() {
@@ -960,12 +1011,12 @@ var UserBox = React.createClass({
             className: 'navbar-text',
             style: {marginRight: '5px'}
           },
-          (worldStore.state.user.balance / 100) + ' bits',
+          (worldStore.state.user.balance * 0.00000001) + ' BTC',
           !worldStore.state.user.unconfirmed_balance ?
            '' :
            el.span(
              {style: { color: '#e67e22'}},
-             ' + ' + (worldStore.state.user.unconfirmed_balance / 100) + ' bits pending'
+             ' + ' + (worldStore.state.user.unconfirmed_balance * 0.00000001) + ' BTC pending'
            )
         ),
         // Refresh button
@@ -1174,7 +1225,7 @@ var ChatUserList = React.createClass({
                 {
                   key: u.uname
                 },
-                helpers.roleToLabelElement(u.role),
+                helpers.roleToLabelElement(u.role, u.uname),
                 ' ' + u.uname
               );
             })
@@ -1249,7 +1300,7 @@ var ChatBox = React.createClass({
                   helpers.formatDateToTime(m.created_at),
                   ' '
                 ),
-                m.user ? helpers.roleToLabelElement(m.user.role) : '',
+                m.user ? helpers.roleToLabelElement(m.user.role, m.user.uname) : '',
                 m.user ? ' ' : '',
                 el.code(
                   null,
@@ -1279,7 +1330,7 @@ var ChatBox = React.createClass({
           className: 'text-right text-muted',
           style: { marginTop: '-15px' }
         },
-        'Users online: ' + Object.keys(chatStore.state.userList).length + ' ',
+        'Type !help for chatbot commands. Users online: ' + Object.keys(chatStore.state.userList).length + ' ',
         // Show/Hide userlist button
         el.button(
           {
@@ -1371,7 +1422,7 @@ var BetBoxProfit = React.createClass({
           className: 'lead',
           style: { color: '#39b54a' }
         },
-        '+' + profit.toFixed(2)
+        '+' + profit.toFixed(8)
       );
     }
 
@@ -1458,6 +1509,7 @@ var BetBoxMultiplier = React.createClass({
             value: betStore.state.multiplier.str,
             className: 'form-control input-lg',
             onChange: this._onMultiplierChange,
+            onClick: this._onMultiplierChange,
             disabled: !!worldStore.state.isLoading
           }
         ),
@@ -1510,7 +1562,8 @@ var BetBoxWager = React.createClass({
     // If user is logged in, use their balance as max wager
     var balanceBits;
     if (worldStore.state.user) {
-      balanceBits = Math.floor(worldStore.state.user.balance / 100);
+      balanceBits = worldStore.state.user.balance * .00000001;
+      balanceBits = Math.floor(balanceBits * 1000000) / 1000000;
     } else {
       balanceBits = 42000;
     }
@@ -1537,8 +1590,9 @@ var BetBoxWager = React.createClass({
           className: 'form-control input-lg',
           style: style1,
           onChange: this._onWagerChange,
+          onClick: this._onWagerChange,
           disabled: !!worldStore.state.isLoading,
-          placeholder: 'Bits'
+          placeholder: 'BTC'
         }
       ),
       el.div(
@@ -1614,7 +1668,7 @@ var BetBoxButton = React.createClass({
       var hash = betStore.state.nextHash;
       console.assert(typeof hash === 'string');
 
-      var wagerSatoshis = betStore.state.wager.num * 100;
+      var wagerSatoshis = betStore.state.wager.num / 0.00000001;
       var multiplier = betStore.state.multiplier.num;
       var payoutSatoshis = wagerSatoshis * multiplier;
 
@@ -1663,7 +1717,7 @@ var BetBoxButton = React.createClass({
           if (xhr.responseJSON && xhr.responseJSON) {
             alert(xhr.responseJSON.error);
           } else {
-            alert('Internal Error');
+             alert('Internal Error');
           }
         },
         complete: function() {
@@ -2008,7 +2062,7 @@ var ToggleAutomaticRoll = React.createClass({
                   var hash = betStore.state.nextHash;
                   console.assert(typeof hash === 'string');
                   
-                  var wagerSatoshis = betStore.state.profitGained.num * 100;
+                  var wagerSatoshis = betStore.state.profitGained.num / 0.00000001;
                   var multiplier = betStore.state.multiplier.num;
                   var payoutSatoshis = wagerSatoshis * multiplier;
                   
@@ -2057,7 +2111,7 @@ var ToggleAutomaticRoll = React.createClass({
                     if (xhr.responseJSON && xhr.responseJSON) {
                       alert(xhr.responseJSON.error);
                     } else {
-                      alert('Internal Error');
+                       alert('Internal Error');
                     }
                   },
                   complete: function() {
@@ -2297,7 +2351,7 @@ var ToggleAutomaticRoll = React.createClass({
                                     ),
                                     el.span(
                                         {className: 'input-group-addon'},
-                                        'Bits'
+                                        'BTC'
                                     )
                               ),
                               el.div({className: 'col-lg-3 col-md-3 col-sm-3 col-xs-3'}, ' ')
@@ -2322,7 +2376,7 @@ var ToggleAutomaticRoll = React.createClass({
                                     ),
                                     el.span(
                                         {className: 'input-group-addon'},
-                                        'Bits'
+                                        'BTC'
                                     )
                               ),
                               el.div({className: 'col-lg-3 col-md-3 col-sm-3 col-xs-3'}, ' ')
@@ -2361,7 +2415,7 @@ var Tabs = React.createClass({
             href: 'javascript:void(0)',
             onClick: this._makeTabChangeHandler('ALL_BETS')
           },
-          'All Bets'
+          'Big Bets'
         )
       ),
       // Only show MY BETS tab if user is logged in
@@ -2386,7 +2440,7 @@ var Tabs = React.createClass({
               href: 'javascript:void(0)',
               onClick: this._makeTabChangeHandler('FAIRNESS')
             },
-            el.span(null, 'Help ')
+            el.span(null, 'Help & Fairness ')
           )
         ),
       // Display faucet tab even to guests so that they're aware that
@@ -2472,8 +2526,8 @@ var MyBetsTabContent = React.createClass({
               // wager
               el.td(
                 null,
-                helpers.round10(bet.wager/100, -2),
-                ' bits'
+                helpers.round10(bet.wager* 0.00000001, -8),
+                ' BTC'
               ),
               // target
               el.td(
@@ -2492,9 +2546,9 @@ var MyBetsTabContent = React.createClass({
               el.td(
                 {style: {color: bet.profit > 0 ? 'green' : 'red'}},
                 bet.profit > 0 ?
-                  '+' + helpers.round10(bet.profit/100, -2) :
-                  helpers.round10(bet.profit/100, -2),
-                ' bits'
+                  '+' + helpers.round10(bet.profit*0.00000001, -8) :
+                  helpers.round10(bet.profit*0.00000001, -8),
+                ' BTC'
               )
             );
           }).reverse()
@@ -2511,8 +2565,8 @@ var FairnessTabContent = React.createClass({
       innerNode = el.p(
         {className: 'navbar-text'},
 			  el.p({className: 'lead'}, " "),
-			  el.p({className: 'lead'}, "This site is only allowed where it is legal to play.")
-
+			  el.p({className: 'lead'}, "Welcome!"),
+			  el.p(null, " ")
       );
 	  
 
@@ -2610,7 +2664,7 @@ var FaucetTabContent = React.createClass({
     case 'SUCCESSFULLY_CLAIMED':
       innerNode = el.div(
         null,
-        'Successfully claimed ' + this.state.claimAmount/100 + ' bits.' +
+        'Successfully claimed ' + this.state.claimAmount*0.00000001 + ' BTC.' +
           // TODO: What's the real interval?
           ' You can claim again in 5 minutes.'
       );
@@ -2676,8 +2730,8 @@ var BetRow = React.createClass({
       // Wager
       el.td(
         null,
-        helpers.round10(bet.wager/100, -2),
-        ' bits'
+        helpers.round10(bet.wager*0.00000001, -9),
+        ' BTC'
       ),
       // Target
       el.td(
@@ -2786,9 +2840,9 @@ var BetRow = React.createClass({
           }
         },
         bet.profit > 0 ?
-          '+' + helpers.round10(bet.profit/100, -2) :
-          helpers.round10(bet.profit/100, -2),
-        ' bits'
+          '+' + helpers.round10(bet.profit*0.00000001, -8) :
+          helpers.round10(bet.profit*0.00000001, -8),
+        ' BTC'
       )
     );
   }
@@ -2862,8 +2916,7 @@ var TabContent = React.createClass({
       case 'MY_BETS':
         return React.createElement(MyBetsTabContent, null);
       case 'ALL_BETS':
-		return React.createElement(MyBetsTabContent, null);
-        //return React.createElement(AllBetsTabContent, null);
+        return React.createElement(AllBetsTabContent, null);
       default:
         alert('Unsupported currTab value: ', worldStore.state.currTab);
         break;
@@ -2957,16 +3010,15 @@ if (!worldStore.state.accessToken) {
     }
   });
   // Fetch latest all-bets to populate the all-bets tab
-  //MoneyPot.listBets({
-    //success: function(bets) {
-      //console.log('[MoneyPot.listBets]:', bets);
-      //Dispatcher.sendAction('INIT_ALL_BETS', bets.reverse());
-	  //setTimeout(Dispatcher.sendAction('INIT_ALL_BETS', bets.reverse()), 10000);
-    //},
-    //error: function(err) {
-      //console.error('[MoneyPot.listBets] Error:', err);
-    //}
-  //});
+  MoneyPot.listBets({
+    success: function(bets) {
+      console.log('[MoneyPot.listBets]:', bets);
+      Dispatcher.sendAction('INIT_ALL_BETS', bets.reverse());
+    },
+    error: function(err) {
+      console.error('[MoneyPot.listBets] Error:', err);
+    }
+  });
 }
 
 ////////////////////////////////////////////////////////////
@@ -3019,16 +3071,22 @@ function connectToChatServer() {
     });
 
     socket.on('new_bet', function(bet) {
-      console.log('[socket] New bet:', bet);
 
-      // Ignore bets that aren't of kind "simple_dice".
-      if (bet.kind !== 'simple_dice') {
-        console.log('[weird] received bet from socket that was NOT a simple_dice bet');
-        return;
-      }
+  // ignore bets that wager < 0.005 btc (500,000 satoshi)
+  if (bet.wager < 500000) {
+    return;
+  }
 
-      Dispatcher.sendAction('NEW_ALL_BET', bet);
-    });
+  console.log('[socket] New bet:', bet);
+
+  // Ignore bets that aren't of kind "simple_dice".
+  if (bet.kind !== 'simple_dice') {
+    console.log('[weird] received bet from socket that was NOT a simple_dice bet');
+    return;
+  }
+
+  Dispatcher.sendAction('NEW_ALL_BET', bet);
+  });
 
     // Received when your client doesn't comply with chat-server api
     socket.on('client_error', function(text) {
@@ -3113,3 +3171,6 @@ window.addEventListener('message', function(event) {
     Dispatcher.sendAction('START_REFRESHING_USER');
   }
 }, false);
+window.setInterval(function(){
+          Dispatcher.sendAction('START_REFRESHING_USER');
+ }, 300000);
