@@ -15,10 +15,10 @@
 /////////////////////////////
 
 var config = {
-  app_id: 926,
+  app_id: 613,
   app_name: 'Welcome to Bit-Exo',
-  recaptcha_sitekey: '6LefHRcTAAAAAGwCE3EB_5A_L3Ay3wVZUCISid-D',
-  redirect_uri: 'https://bit-exo.com',
+  recaptcha_sitekey: '6Lfa5wwTAAAAAGOqI0taqy4TgVpLbeBS1_QkXp5r',
+  redirect_uri: 'https://bestluck.github.io',
   mp_browser_uri: 'https://www.moneypot.com',
   mp_api_uri: 'https://api.moneypot.com',
   be_api_uri: 'https://bit-exo.com',
