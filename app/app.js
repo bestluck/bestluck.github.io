@@ -21,10 +21,8 @@ var config = {
   redirect_uri: 'https://bestluck.github.io',
   mp_browser_uri: 'https://www.moneypot.com',
   mp_api_uri: 'https://api.moneypot.com',
-  be_api_uri: 'https://bit-exo.com',
-  chat_uri: '//socket.moneypot.com',
-  be_uri: '//bit-exo.com',
-  force_https_redirect: true,
+    chat_uri: '//socket.moneypot.com',
+    force_https_redirect: true,
   house_edge: 0.01,
   chat_buffer_size: 99,
   /// Plinko payout size
